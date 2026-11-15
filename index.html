@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0b0b10">
+  <title>ElevenLabs Sesli Agent</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b0b10;
+      --panel: rgba(22, 22, 31, .88);
+      --panel-border: rgba(255,255,255,.09);
+      --text: #f5f3ff;
+      --muted: #a1a1b2;
+      --accent: #9b7bff;
+      --danger: #ff5b6e;
+      --success: #43d9a3;
+      --radius: 22px;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      margin: 0;
+      padding: 28px 18px;
+      display: grid;
+      place-items: center;
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: radial-gradient(ellipse at 50% 0%, rgba(124, 58, 237, .2), transparent 45%), var(--bg);
+    }
+    .app { width: min(100%, 480px); }
+    .brand {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 11px;
+      margin-bottom: 22px;
+      color: var(--muted);
+      font-size: .85rem;
+      letter-spacing: .04em;
+    }
+    .brand-mark {
+      display: grid;
+      width: 34px;
+      height: 34px;
+      place-items: center;
+      color: white;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #a78bfa, #6d28d9);
+      box-shadow: 0 6px 24px rgba(124, 58, 237, .32);
+    }
+    .card {
+      padding: clamp(24px, 6vw, 36px);
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: 0 24px 80px rgba(0,0,0,.4);
+      backdrop-filter: blur(16px);
+    }
+    h1 { margin: 0; text-align: center; font-size: clamp(1.5rem, 5vw, 1.9rem); letter-spacing: -.04em; }
+    .intro { margin: 10px 0 26px; color: var(--muted); text-align: center; line-height: 1.6; font-size: .94rem; }
+    label { display: block; margin-bottom: 8px; color: #d7d4e2; font-size: .85rem; font-weight: 600; }
+    input {
+      width: 100%; min-height: 48px; padding: 0 14px; color: var(--text);
+      border: 1px solid rgba(255,255,255,.12); border-radius: 12px;
+      outline: none; background: rgba(7,7,12,.55); font: inherit;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(155,123,255,.18); }
+    .hint { margin: 8px 0 0; color: var(--muted); font-size: .78rem; line-height: 1.5; }
+    .call-area { display: grid; justify-items: center; padding-top: 20px; }
+    .status { min-height: 24px; color: var(--muted); text-align: center; font-size: .9rem; }
+    .status[data-state="connected"] { color: var(--success); }
+    .status[data-state="error"] { color: #ff8793; }
+    .call-button {
+      width: 88px; height: 88px; margin: 16px 0 12px; display: grid; place-items: center;
+      color: white; border: 0; border-radius: 50%;
+      background: linear-gradient(145deg, #a78bfa, #7138df);
+      box-shadow: 0 10px 34px rgba(124,58,237,.38); cursor: pointer; font-size: 1.8rem;
+      transition: transform .2s, background .2s, box-shadow .2s;
+    }
+    .call-button:hover:not(:disabled) { transform: translateY(-2px) scale(1.03); box-shadow: 0 14px 40px rgba(124,58,237,.48); }
+    .call-button.active { background: linear-gradient(145deg, #ff7785, #e5324b); box-shadow: 0 10px 34px rgba(239,68,68,.3); }
+    .call-button:disabled { opacity: .65; cursor: wait; }
+    .call-button:focus-visible { outline: 3px solid white; outline-offset: 4px; }
+    .timer { color: var(--muted); font-variant-numeric: tabular-nums; font-size: .9rem; }
+    .privacy { margin: 22px 0 0; padding-top: 18px; color: var(--muted); border-top: 1px solid var(--panel-border); text-align: center; font-size: .76rem; line-height: 1.55; }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">✦</span> ELEVENLABS VOICE</div>
+    <section class="card" aria-labelledby="pageTitle">
+      <h1 id="pageTitle">Sesli görüşme</h1>
+      <p class="intro">Agent’ınızla güvenli bir sesli görüşme başlatın.</p>
+      <div>
+        <label for="agentId">Agent ID</label>
+        <input id="agentId" type="text" autocomplete="off" spellcheck="false" placeholder="Agent ID’nizi girin" aria-describedby="agentHint">
+        <p class="hint" id="agentHint">API anahtarınızı bu sayfaya girmeyin. Agent ID gizli anahtar değildir.</p>
+      </div>
+      <div class="call-area">
+        <p class="status" id="status" role="status" aria-live="polite" data-state="ready">Aramaya hazır</p>
+        <button class="call-button" id="callButton" type="button" aria-label="Görüşmeyi başlat">☎</button>
+        <div class="timer" id="timer" aria-label="Görüşme süresi">00:00</div>
+      </div>
+      <p class="privacy">Görüşmeyi başlattığınızda mikrofon izni istenir. Mikrofonu kullanmadığınız zamanlarda tarayıcı iznini kapatabilirsiniz.</p>
+    </section>
+  </main>
+
+  <script type="module">
+    // Üretimde bu paketi uygulamanızın build sürecine ekleyip yerel olarak sunun;
+    // sürümsüz CDN import'u yerine bağımlılığı sabitleyin.
+    import { Conversation } from "https://esm.sh/@elevenlabs/client";
+
+    const agentInput = document.getElementById("agentId");
+    const button = document.getElementById("callButton");
+    const status = document.getElementById("status");
+    const timer = document.getElementById("timer");
+
+    let conversation = null;
+    let state = "ready";
+    let elapsed = 0;
+    let timerId = null;
+
+    function setStatus(message, kind = "ready") {
+      status.textContent = message;
+      status.dataset.state = kind;
+    }
+
+    function setState(next) {
+      state = next;
+      const active = next === "connected";
+      button.disabled = next === "connecting" || next === "stopping";
+      button.classList.toggle("active", active);
+      button.textContent = active ? "■" : "☎";
+      button.setAttribute("aria-label", active ? "Görüşmeyi sonlandır" : "Görüşmeyi başlat");
+    }
+
+    function resetTimer() {
+      clearInterval(timerId);
+      timerId = null;
+      elapsed = 0;
+      timer.textContent = "00:00";
+    }
+
+    function startTimer() {
+      resetTimer();
+      timerId = setInterval(() => {
+        elapsed += 1;
+        const minutes = String(Math.floor(elapsed / 60)).padStart(2, "0");
+        const seconds = String(elapsed % 60).padStart(2, "0");
+        timer.textContent = `${minutes}:${seconds}`;
+      }, 1000);
+    }
+
+    function finishCall(message = "Görüşme sonlandırıldı", kind = "ready") {
+      conversation = null;
+      resetTimer();
+      setState("ready");
+      setStatus(message, kind);
+    }
+
+    async function startCall() {
+      const agentId = agentInput.value.trim();
+      if (!agentId) {
+        setStatus("Devam etmek için Agent ID girin.", "error");
+        agentInput.focus();
+        return;
+      }
+
+      setState("connecting");
+      setStatus("Güvenli bağlantı hazırlanıyor…");
+
+      try {
+        const response = await fetch("/api/elevenlabs/signed-url", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ agentId })
+        });
+
+        if (!response.ok) {
+          throw new Error(response.status === 401 || response.status === 403
+            ? "Bu işlem için yetkiniz yok."
+            : "Bağlantı bilgisi alınamadı. Sunucu ayarlarını kontrol edin.");
+        }
+
+        const data = await response.json();
+        const signedUrl = data.signedUrl || data.signed_url;
+        if (!signedUrl || typeof signedUrl !== "string" || !signedUrl.startsWith("wss://")) {
+          throw new Error("Sunucudan geçerli bir güvenli bağlantı adresi alınamadı.");
+        }
+
+        const session = await Conversation.startSession({
+          signedUrl,
+          onConnect: () => {
+            setState("connected");
+            setStatus("Bağlandı — konuşabilirsiniz.", "connected");
+            startTimer();
+          },
+          onDisconnect: () => finishCall("Görüşme sonlandırıldı"),
+          onError: (error) => {
+            console.error("ElevenLabs session error:", error);
+            finishCall("Bağlantıda sorun oluştu. Lütfen tekrar deneyin.", "error");
+          }
+        });
+
+        if (state === "ready") {
+          await session.endSession();
+          return;
+        }
+        conversation = session;
+      } catch (error) {
+        console.error("Call setup error:", error);
+        finishCall(error instanceof Error ? error.message : "Bağlantı kurulamadı.", "error");
+      }
+    }
+
+    async function stopCall() {
+      if (!conversation || state === "stopping") return;
+      const activeSession = conversation;
+      conversation = null;
+      setState("stopping");
+      setStatus("Görüşme sonlandırılıyor…");
+      try {
+        await activeSession.endSession();
+      } catch (error) {
+        console.warn("Session cleanup warning:", error);
+      } finally {
+        finishCall();
+      }
+    }
+
+    button.addEventListener("click", () => {
+      if (state === "connected") void stopCall();
+      else if (state === "ready") void startCall();
+    });
+  </script>
+</body>
+</html>
